@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bubble Popper</title>
+  <style>
+    :root{
+      --bg1:#0f172a; /* slate-900 */
+      --bg2:#111827; /* gray-900 */
+      --panel:#0b1224;
+      --ring: rgba(255,255,255,0.08);
+      --text: rgba(255,255,255,0.9);
+
+      --bubble-size: 56px;
+      --gap: 14px;
+
+      --bubble-out: #60a5fa;   /* blue-400 */
+      --bubble-in:  #1d4ed8;   /* blue-700 */
+      --bubble-edge: rgba(255,255,255,0.25);
+      --bubble-shadow: rgba(0,0,0,0.45);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(96,165,250,0.18), transparent 60%),
+        radial-gradient(900px 600px at 80% 90%, rgba(59,130,246,0.16), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      padding: 22px;
+    }
+
+    .app{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border: 1px solid var(--ring);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+
+    header{
+      display:flex;
+      gap: 14px;
+      align-items:center;
+      justify-content:space-between;
+      padding: 16px 16px 12px;
+      background: rgba(0,0,0,0.25);
+      border-bottom: 1px solid var(--ring);
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .title h1{
+      margin:0;
+      font-size: 16px;
+      letter-spacing: 0.3px;
+      font-weight: 700;
+    }
+    .title p{
+      margin:0;
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    button{
+      appearance:none;
+      border:1px solid var(--ring);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: transform 0.08s ease, background 0.2s ease, border-color 0.2s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,0.10); }
+    button:active{ transform: translateY(1px) scale(0.99); }
+
+    .toggle{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border:1px solid var(--ring);
+      background: rgba(255,255,255,0.04);
+      user-select:none;
+    }
+    .toggle input{ accent-color: #60a5fa; }
+    .toggle label{
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.9;
+      cursor:pointer;
+    }
+
+    .stage{
+      padding: 16px;
+    }
+
+    .board{
+      display:grid;
+      grid-template-columns: repeat(var(--cols), var(--bubble-size));
+      gap: var(--gap);
+      justify-content:center;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--ring);
+      background: linear-gradient(180deg, rgba(11,18,36,0.85), rgba(11,18,36,0.65));
+      position:relative;
+      touch-action: manipulation; /* better on mobile */
+      user-select:none;
+    }
+
+    .bubble{
+      width: var(--bubble-size);
+      height: var(--bubble-size);
+      border-radius: 999px;
+      position:relative;
+      cursor:pointer;
+      outline:none;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0.0) 45%),
+                  radial-gradient(circle at 50% 55%, rgba(0,0,0,0.18), rgba(0,0,0,0) 55%),
+                  linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+      box-shadow: 0 10px 18px var(--bubble-shadow);
+      transition: transform 160ms cubic-bezier(.2,.8,.2,1),
+                  box-shadow 180ms ease,
+                  filter 180ms ease;
+      display:grid;
+      place-items:center;
+    }
+
+    /* The “skin” of the bubble that flips look */
+    .bubble::before{
+      content:"";
+      position:absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.40), rgba(255,255,255,0.0) 45%),
+                  linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.0));
+      border: 1px solid var(--bubble-edge);
+      opacity: 1;
+      pointer-events:none;
+    }
+
+    /* OUT state */
+    .bubble[data-state="out"]{
+      background:
+        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.65), rgba(255,255,255,0.0) 46%),
+        radial-gradient(circle at 55% 60%, rgba(0,0,0,0.25), rgba(0,0,0,0) 58%),
+        linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)),
+        radial-gradient(circle at 50% 50%, rgba(96,165,250,0.85), rgba(96,165,250,0.55));
+      filter: saturate(1.05);
+    }
+
+    /* IN state (looks “inverted”) */
+    .bubble[data-state="in"]{
+      transform: translateY(2px) scale(0.985);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.50);
+      background:
+        radial-gradient(circle at 65% 68%, rgba(255,255,255,0.18), rgba(255,255,255,0.0) 55%),
+        radial-gradient(circle at 40% 35%, rgba(0,0,0,0.34), rgba(0,0,0,0) 58%),
+        linear-gradient(180deg, rgba(0,0,0,0.10), rgba(255,255,255,0.02)),
+        radial-gradient(circle at 50% 50%, rgba(29,78,216,0.95), rgba(29,78,216,0.55));
+      filter: saturate(1.0) brightness(0.98);
+    }
+
+    /* Press feedback */
+    .bubble:active{
+      transform: translateY(3px) scale(0.975);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.55);
+    }
+
+    footer{
+      padding: 12px 16px 16px;
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+      opacity:0.85;
+      font-size:12px;
+    }
+    .hint{
+      opacity:0.8;
+    }
+
+    /* Responsive sizing */
+    @media (max-width: 520px){
+      :root{ --bubble-size: 48px; --gap: 12px; }
+    }
+    @media (max-width: 420px){
+      :root{ --bubble-size: 44px; --gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Bubble Popper</h1>
+        <p>Click/tap bubbles to flip them. Drag across to pop multiple.</p>
+      </div>
+      <div class="controls">
+        <button id="resetBtn" title="Set all bubbles back to OUT">Reset</button>
+        <button id="shuffleBtn" title="Randomize in/out states">Shuffle</button>
+        <div class="toggle" title="Toggle pop sound">
+          <input id="soundToggle" type="checkbox" />
+          <label for="soundToggle">Sound</label>
+        </div>
+      </div>
+    </header>
+
+    <div class="stage">
+      <div id="board" class="board" aria-label="Bubble popper board"></div>
+    </div>
+
+    <footer>
+      <div class="hint">Tip: Press <b>R</b> to reset, <b>S</b> to shuffle.</div>
+      <div id="stat" class="hint"></div>
+    </footer>
+  </div>
+
+  <script>
+    // ---------- Config ----------
+    const DEFAULT_ROWS = 7;
+    const DEFAULT_COLS = 10;
+
+    // ---------- State ----------
+    let rows = DEFAULT_ROWS;
+    let cols = DEFAULT_COLS;
+    let isPointerDown = false;
+    let lastPoppedId = null;
+
+    const board = document.getElementById('board');
+    const stat = document.getElementById('stat');
+    const resetBtn = document.getElementById('resetBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const soundToggle = document.getElementById('soundToggle');
+
+    // ---------- Utilities ----------
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    // Responsive grid size based on available width
+    function computeGrid(){
+      const bubbleSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bubble-size'));
+      const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+      const maxWidth = Math.min(980, document.body.clientWidth - 44); // body padding + border-ish
+      const possibleCols = Math.floor((maxWidth - 32) / (bubbleSize + gap));
+      cols = clamp(possibleCols, 5, 14);
+      rows = clamp(Math.round(cols * 0.7), 5, 10); // keep it bubble-wrap-ish
+      board.style.setProperty('--cols', cols);
+    }
+
+    function updateStat(){
+      const bubbles = board.querySelectorAll('.bubble');
+      let inCount = 0;
+      for (const b of bubbles) if (b.dataset.state === 'in') inCount++;
+      stat.textContent = `${inCount} / ${bubbles.length} popped`;
+    }
+
+    // ---------- Sound (WebAudio, tiny pop) ----------
+    let audioCtx = null;
+    function popSound(){
+      if (!soundToggle.checked) return;
+      try{
+        audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+        const t = audioCtx.currentTime;
+
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+
+        o.type = 'sine';
+        o.frequency.setValueAtTime(240, t);
+        o.frequency.exponentialRampToValueAtTime(90, t + 0.045);
+
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.12, t + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+
+        o.connect(g).connect(audioCtx.destination);
+        o.start(t);
+        o.stop(t + 0.065);
+      }catch(e){
+        // If audio fails, silently ignore.
+      }
+    }
+
+    // ---------- Bubble actions ----------
+    function toggleBubble(el){
+      if (!el) return;
+      const next = (el.dataset.state === 'out') ? 'in' : 'out';
+      el.dataset.state = next;
+
+      // Haptic on supported mobile browsers
+      if (navigator.vibrate) navigator.vibrate(8);
+
+      popSound();
+      updateStat();
+    }
+
+    function setAll(state){
+      board.querySelectorAll('.bubble').forEach(b => b.dataset.state = state);
+      updateStat();
+    }
+
+    function shuffle(){
+      board.querySelectorAll('.bubble').forEach(b => {
+        b.dataset.state = (Math.random() < 0.5) ? 'out' : 'in';
+      });
+      updateStat();
+    }
+
+    // ---------- Build board ----------
+    function buildBoard(){
+      board.innerHTML = '';
+      const total = rows * cols;
+
+      for (let i=0; i<total; i++){
+        const b = document.createElement('div');
+        b.className = 'bubble';
+        b.tabIndex = 0;
+        b.role = 'button';
+        b.ariaLabel = 'Bubble';
+        b.dataset.id = String(i);
+        b.dataset.state = 'out';
+
+        // Click / tap
+        b.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          isPointerDown = true;
+          lastPoppedId = b.dataset.id;
+          toggleBubble(b);
+          b.setPointerCapture?.(e.pointerId);
+        });
+
+        b.addEventListener('pointerenter', (e) => {
+          if (!isPointerDown) return;
+          // Prevent toggling the same bubble repeatedly if pointer jitters
+          if (b.dataset.id === lastPoppedId) return;
+          lastPoppedId = b.dataset.id;
+          toggleBubble(b);
+        });
+
+        b.addEventListener('pointerup', () => {
+          isPointerDown = false;
+          lastPoppedId = null;
+        });
+
+        b.addEventListener('pointercancel', () => {
+          isPointerDown = false;
+          lastPoppedId = null;
+        });
+
+        // Keyboard support
+        b.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleBubble(b);
+          }
+        });
+
+        board.appendChild(b);
+      }
+
+      updateStat();
+    }
+
+    // ---------- Global events ----------
+    window.addEventListener('pointerup', () => { isPointerDown = false; lastPoppedId = null; });
+
+    resetBtn.addEventListener('click', () => setAll('out'));
+    shuffleBtn.addEventListener('click', shuffle);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'r') setAll('out');
+      if (e.key.toLowerCase() === 's') shuffle();
+    });
+
+    // Rebuild on resize for responsive cols/rows
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        computeGrid();
+        buildBoard();
+      }, 120);
+    });
+
+    // Init
+    computeGrid();
+    buildBoard();
+  </script>
+</body>
+</html>
