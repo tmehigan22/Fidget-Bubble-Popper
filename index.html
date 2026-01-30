@@ -2,55 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bubble Popper</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Pop It</title>
   <style>
     :root{
-      --bg1:#0f172a; /* slate-900 */
-      --bg2:#111827; /* gray-900 */
-      --panel:#0b1224;
-      --ring: rgba(255,255,255,0.08);
-      --text: rgba(255,255,255,0.9);
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.03);
+      --ring: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
 
-      --bubble-size: 56px;
+      --bubble: 56px;
       --gap: 14px;
 
-      --bubble-out: #60a5fa;   /* blue-400 */
-      --bubble-in:  #1d4ed8;   /* blue-700 */
-      --bubble-edge: rgba(255,255,255,0.25);
-      --bubble-shadow: rgba(0,0,0,0.45);
+      --frame-radius: 22px;
+      --inner-radius: 18px;
+
+      /* Tuned for a “silicone” look */
+      --shadow-strong: rgba(0,0,0,0.55);
+      --shadow-soft: rgba(0,0,0,0.32);
+      --highlight: rgba(255,255,255,0.35);
+      --edge: rgba(255,255,255,0.18);
     }
 
-    *{box-sizing:border-box}
+    *{ box-sizing: border-box; }
     body{
       margin:0;
       min-height:100vh;
       display:grid;
       place-items:center;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background:
-        radial-gradient(1200px 800px at 20% 10%, rgba(96,165,250,0.18), transparent 60%),
-        radial-gradient(900px 600px at 80% 90%, rgba(59,130,246,0.16), transparent 55%),
-        linear-gradient(180deg, var(--bg1), var(--bg2));
+      padding: 18px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       color: var(--text);
-      padding: 22px;
+      background:
+        radial-gradient(900px 600px at 18% 10%, rgba(99,102,241,0.18), transparent 60%),
+        radial-gradient(900px 600px at 82% 90%, rgba(34,211,238,0.14), transparent 55%),
+        linear-gradient(180deg, #08101f, var(--bg));
     }
 
     .app{
-      width:min(980px, 100%);
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      border: 1px solid var(--ring);
+      width: min(980px, 100%);
       border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      border: 1px solid var(--ring);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 24px 70px rgba(0,0,0,0.55);
       overflow:hidden;
     }
 
     header{
       display:flex;
-      gap: 14px;
       align-items:center;
       justify-content:space-between;
-      padding: 16px 16px 12px;
+      gap: 12px;
+      padding: 14px 14px 12px;
       background: rgba(0,0,0,0.25);
       border-bottom: 1px solid var(--ring);
     }
@@ -58,158 +62,207 @@
     .title{
       display:flex;
       flex-direction:column;
-      gap:4px;
+      gap: 4px;
+      min-width: 0;
     }
     .title h1{
       margin:0;
       font-size: 16px;
-      letter-spacing: 0.3px;
-      font-weight: 700;
+      font-weight: 800;
+      letter-spacing: 0.2px;
     }
     .title p{
       margin:0;
       font-size: 12px;
-      opacity: 0.75;
+      opacity: 0.78;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
     }
 
     .controls{
       display:flex;
-      flex-wrap:wrap;
-      gap: 10px;
       align-items:center;
+      gap: 10px;
+      flex-wrap:wrap;
       justify-content:flex-end;
     }
+
     button{
       appearance:none;
-      border:1px solid var(--ring);
+      border: 1px solid var(--ring);
       background: rgba(255,255,255,0.06);
       color: var(--text);
       padding: 9px 12px;
       border-radius: 12px;
       cursor:pointer;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 12px;
       transition: transform 0.08s ease, background 0.2s ease, border-color 0.2s ease;
       user-select:none;
+      -webkit-tap-highlight-color: transparent;
     }
     button:hover{ background: rgba(255,255,255,0.10); }
     button:active{ transform: translateY(1px) scale(0.99); }
 
-    .toggle{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding: 8px 10px;
+    .iconBtn{
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      display:grid;
+      place-items:center;
       border-radius: 12px;
-      border:1px solid var(--ring);
-      background: rgba(255,255,255,0.04);
-      user-select:none;
     }
-    .toggle input{ accent-color: #60a5fa; }
-    .toggle label{
-      font-size: 12px;
-      font-weight: 600;
-      opacity: 0.9;
-      cursor:pointer;
+    .icon{
+      width: 18px;
+      height: 18px;
+      display:block;
+      opacity: 0.95;
     }
 
     .stage{
       padding: 16px;
     }
 
+    /* Pop-it frame */
+    .popitFrame{
+      border-radius: var(--frame-radius);
+      padding: 16px;
+      position:relative;
+      box-shadow:
+        0 18px 36px var(--shadow-strong),
+        inset 0 2px 0 rgba(255,255,255,0.12),
+        inset 0 -10px 18px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      background:
+        radial-gradient(120px 80px at 20% 12%, rgba(255,255,255,0.18), transparent 65%),
+        radial-gradient(120px 80px at 85% 30%, rgba(255,255,255,0.10), transparent 70%),
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.10));
+      overflow:hidden;
+    }
+
+    /* Inner cavity */
     .board{
+      --cols: 10;
       display:grid;
-      grid-template-columns: repeat(var(--cols), var(--bubble-size));
+      grid-template-columns: repeat(var(--cols), var(--bubble));
       gap: var(--gap);
       justify-content:center;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid var(--ring);
-      background: linear-gradient(180deg, rgba(11,18,36,0.85), rgba(11,18,36,0.65));
-      position:relative;
-      touch-action: manipulation; /* better on mobile */
-      user-select:none;
-    }
-
-    .bubble{
-      width: var(--bubble-size);
-      height: var(--bubble-size);
-      border-radius: 999px;
-      position:relative;
-      cursor:pointer;
-      outline:none;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0.0) 45%),
-                  radial-gradient(circle at 50% 55%, rgba(0,0,0,0.18), rgba(0,0,0,0) 55%),
-                  linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
-      box-shadow: 0 10px 18px var(--bubble-shadow);
-      transition: transform 160ms cubic-bezier(.2,.8,.2,1),
-                  box-shadow 180ms ease,
-                  filter 180ms ease;
-      display:grid;
-      place-items:center;
-    }
-
-    /* The “skin” of the bubble that flips look */
-    .bubble::before{
-      content:"";
-      position:absolute;
-      inset: 0;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.40), rgba(255,255,255,0.0) 45%),
-                  linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.0));
-      border: 1px solid var(--bubble-edge);
-      opacity: 1;
-      pointer-events:none;
-    }
-
-    /* OUT state */
-    .bubble[data-state="out"]{
+      border-radius: var(--inner-radius);
+      padding: 14px;
       background:
-        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.65), rgba(255,255,255,0.0) 46%),
-        radial-gradient(circle at 55% 60%, rgba(0,0,0,0.25), rgba(0,0,0,0) 58%),
-        linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)),
-        radial-gradient(circle at 50% 50%, rgba(96,165,250,0.85), rgba(96,165,250,0.55));
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.10));
+      box-shadow:
+        inset 0 10px 18px rgba(0,0,0,0.28),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+      touch-action: manipulation;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Row strips (silicone color bands) */
+    .rowStrip{
+      position:absolute;
+      left:0;
+      right:0;
+      height: calc(var(--bubble) + var(--gap));
+      z-index: 0;
+      opacity: 0.95;
       filter: saturate(1.05);
     }
 
-    /* IN state (looks “inverted”) */
-    .bubble[data-state="in"]{
-      transform: translateY(2px) scale(0.985);
-      box-shadow: 0 6px 10px rgba(0,0,0,0.50);
+    /* Raised separators between rows */
+    .separator{
+      position:absolute;
+      left: 10px;
+      right: 10px;
+      height: 10px;
+      border-radius: 999px;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(0,0,0,0.18));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.18),
+        0 5px 10px rgba(0,0,0,0.28);
+      opacity: 0.9;
+    }
+
+    .boardContent{
+      position:relative;
+      z-index: 2;
+    }
+
+    /* Each bubble uses its row’s color via --rowColor */
+    .bubble{
+      width: var(--bubble);
+      height: var(--bubble);
+      border-radius: 999px;
+      position:relative;
+      cursor:pointer;
+      border: 1px solid rgba(255,255,255,0.10);
+      outline:none;
+
+      /* “Silicone” bubble shading */
       background:
-        radial-gradient(circle at 65% 68%, rgba(255,255,255,0.18), rgba(255,255,255,0.0) 55%),
-        radial-gradient(circle at 40% 35%, rgba(0,0,0,0.34), rgba(0,0,0,0) 58%),
-        linear-gradient(180deg, rgba(0,0,0,0.10), rgba(255,255,255,0.02)),
-        radial-gradient(circle at 50% 50%, rgba(29,78,216,0.95), rgba(29,78,216,0.55));
-      filter: saturate(1.0) brightness(0.98);
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55), rgba(255,255,255,0.0) 46%),
+        radial-gradient(circle at 55% 62%, rgba(0,0,0,0.25), rgba(0,0,0,0.0) 58%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--rowColor) 92%, white 8%), var(--rowColor));
+
+      box-shadow:
+        0 10px 18px var(--shadow-soft),
+        inset 0 1px 0 rgba(255,255,255,0.22);
+      transition: transform 140ms cubic-bezier(.2,.8,.2,1), box-shadow 160ms ease, filter 160ms ease;
+      display:block;
     }
 
-    /* Press feedback */
+    .bubble::before{
+      content:"";
+      position:absolute;
+      inset: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.20);
+      opacity: 0.9;
+      pointer-events:none;
+    }
+
+    /* OUT (domed) */
+    .bubble[data-state="out"]{
+      transform: translateY(0px);
+      filter: brightness(1.02);
+    }
+
+    /* IN (inverted) */
+    .bubble[data-state="in"]{
+      transform: translateY(3px) scale(0.985);
+      filter: brightness(0.97) saturate(0.98);
+      box-shadow:
+        0 6px 10px rgba(0,0,0,0.45),
+        inset 0 10px 14px rgba(0,0,0,0.30),
+        inset 0 -1px 0 rgba(255,255,255,0.10);
+      background:
+        radial-gradient(circle at 70% 70%, rgba(255,255,255,0.16), rgba(255,255,255,0.0) 55%),
+        radial-gradient(circle at 42% 38%, rgba(0,0,0,0.34), rgba(0,0,0,0.0) 58%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--rowColor) 84%, black 16%), var(--rowColor));
+    }
+
     .bubble:active{
-      transform: translateY(3px) scale(0.975);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.55);
+      transform: translateY(4px) scale(0.975);
     }
 
-    footer{
-      padding: 12px 16px 16px;
+    .metaBar{
+      padding: 0 16px 14px;
+      font-size: 12px;
+      opacity: 0.85;
       display:flex;
-      justify-content:space-between;
-      gap: 10px;
-      flex-wrap:wrap;
-      opacity:0.85;
-      font-size:12px;
-    }
-    .hint{
-      opacity:0.8;
+      justify-content:flex-end;
     }
 
-    /* Responsive sizing */
     @media (max-width: 520px){
-      :root{ --bubble-size: 48px; --gap: 12px; }
+      :root{ --bubble: 48px; --gap: 12px; }
+      .iconBtn{ width: 36px; height: 36px; }
     }
     @media (max-width: 420px){
-      :root{ --bubble-size: 44px; --gap: 10px; }
+      :root{ --bubble: 44px; --gap: 10px; }
     }
   </style>
 </head>
@@ -217,101 +270,208 @@
   <div class="app">
     <header>
       <div class="title">
-        <h1>Bubble Popper</h1>
-        <p>Click/tap bubbles to flip them. Drag across to pop multiple.</p>
+        <h1>Pop It</h1>
+        <p>Tap bubbles to flip in/out. Shuffle for chaos.</p>
       </div>
+
       <div class="controls">
         <button id="resetBtn" title="Set all bubbles back to OUT">Reset</button>
         <button id="shuffleBtn" title="Randomize in/out states">Shuffle</button>
-        <div class="toggle" title="Toggle pop sound">
-          <input id="soundToggle" type="checkbox" />
-          <label for="soundToggle">Sound</label>
-        </div>
+
+        <button id="soundBtn" class="iconBtn" aria-label="Toggle sound" title="Sound off">
+          <!-- speaker-off icon -->
+          <svg id="soundIcon" class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M11 5L6.5 9H3v6h3.5L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M22 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M16 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
     </header>
 
     <div class="stage">
-      <div id="board" class="board" aria-label="Bubble popper board"></div>
+      <div id="frame" class="popitFrame" aria-label="Pop it fidget board">
+        <!-- row strips + separators injected by JS -->
+        <div id="board" class="board boardContent"></div>
+      </div>
     </div>
 
-    <footer>
-      <div class="hint">Tip: Press <b>R</b> to reset, <b>S</b> to shuffle.</div>
-      <div id="stat" class="hint"></div>
-    </footer>
+    <div class="metaBar">
+      <div id="stat"></div>
+    </div>
   </div>
 
   <script>
     // ---------- Config ----------
-    const DEFAULT_ROWS = 7;
-    const DEFAULT_COLS = 10;
+    const DEFAULT_ROWS = 6; // matches classic rainbow pop-it look
+    const MIN_COLS = 6;
+    const MAX_COLS = 12;
+
+    // Rainbow row colors (top -> bottom)
+    const ROW_COLORS = [
+      "#ff3b30", // red
+      "#ff9f0a", // orange
+      "#ffd60a", // yellow
+      "#34c759", // green
+      "#32ade6", // cyan/blue
+      "#af52de"  // purple
+    ];
+
+    // ---------- Elements ----------
+    const frame = document.getElementById("frame");
+    const board = document.getElementById("board");
+    const stat = document.getElementById("stat");
+    const resetBtn = document.getElementById("resetBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+    const soundBtn = document.getElementById("soundBtn");
+    const soundIcon = document.getElementById("soundIcon");
 
     // ---------- State ----------
     let rows = DEFAULT_ROWS;
-    let cols = DEFAULT_COLS;
-    let isPointerDown = false;
-    let lastPoppedId = null;
+    let cols = 10;
 
-    const board = document.getElementById('board');
-    const stat = document.getElementById('stat');
-    const resetBtn = document.getElementById('resetBtn');
-    const shuffleBtn = document.getElementById('shuffleBtn');
-    const soundToggle = document.getElementById('soundToggle');
+    let soundEnabled = false;
+    let audioCtx = null;
 
-    // ---------- Utilities ----------
-    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+    // ---------- Helpers ----------
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
-    // Responsive grid size based on available width
-    function computeGrid(){
-      const bubbleSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bubble-size'));
-      const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
-      const maxWidth = Math.min(980, document.body.clientWidth - 44); // body padding + border-ish
-      const possibleCols = Math.floor((maxWidth - 32) / (bubbleSize + gap));
-      cols = clamp(possibleCols, 5, 14);
-      rows = clamp(Math.round(cols * 0.7), 5, 10); // keep it bubble-wrap-ish
-      board.style.setProperty('--cols', cols);
+    function getCSSNumber(varName){
+      return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(varName));
+    }
+
+    function computeCols(){
+      const bubble = getCSSNumber("--bubble");
+      const gap = getCSSNumber("--gap");
+      // available width inside app, minus padding
+      const maxWidth = Math.min(980, document.body.clientWidth - 36);
+      const usable = maxWidth - 32 - 32; // app padding-ish + frame padding-ish
+      const possible = Math.floor((usable + gap) / (bubble + gap));
+      cols = clamp(possible, MIN_COLS, MAX_COLS);
+      board.style.setProperty("--cols", cols);
     }
 
     function updateStat(){
-      const bubbles = board.querySelectorAll('.bubble');
+      const bubbles = board.querySelectorAll(".bubble");
       let inCount = 0;
-      for (const b of bubbles) if (b.dataset.state === 'in') inCount++;
+      for (const b of bubbles) if (b.dataset.state === "in") inCount++;
       stat.textContent = `${inCount} / ${bubbles.length} popped`;
     }
 
-    // ---------- Sound (WebAudio, tiny pop) ----------
-    let audioCtx = null;
+    // ---------- Sound (reliable on mobile) ----------
+    async function ensureAudio(){
+      // Must be called from a user gesture (click/tap)
+      if (!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended"){
+        await audioCtx.resume();
+      }
+    }
+
     function popSound(){
-      if (!soundToggle.checked) return;
-      try{
-        audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-        const t = audioCtx.currentTime;
+      if (!soundEnabled) return;
+      if (!audioCtx || audioCtx.state !== "running") return;
 
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
+      const t = audioCtx.currentTime;
 
-        o.type = 'sine';
-        o.frequency.setValueAtTime(240, t);
-        o.frequency.exponentialRampToValueAtTime(90, t + 0.045);
+      // A quick "pop": triangle osc + short filtered noise click
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.exponentialRampToValueAtTime(110, t + 0.05);
 
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.12, t + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
 
-        o.connect(g).connect(audioCtx.destination);
-        o.start(t);
-        o.stop(t + 0.065);
-      }catch(e){
-        // If audio fails, silently ignore.
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.075);
+
+      // Tiny click using noise burst (helps audibility on phone speakers)
+      const bufferSize = Math.floor(audioCtx.sampleRate * 0.03);
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++){
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize / 6));
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const nGain = audioCtx.createGain();
+      nGain.gain.setValueAtTime(0.12, t);
+      nGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+
+      noise.connect(nGain).connect(audioCtx.destination);
+      noise.start(t);
+      noise.stop(t + 0.031);
+    }
+
+    function setSoundUI(){
+      soundBtn.title = soundEnabled ? "Sound on" : "Sound off";
+      // swap icon paths by rewriting SVG
+      soundIcon.innerHTML = soundEnabled
+        ? `
+          <path d="M11 5L6.5 9H3v6h3.5L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M15.5 8.5c1.2 1.2 1.2 5.8 0 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M18.5 6c2.7 2.7 2.7 9.3 0 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        `
+        : `
+          <path d="M11 5L6.5 9H3v6h3.5L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M22 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        `;
+    }
+
+    // ---------- Pop-it visuals (row strips + separators) ----------
+    function buildRowStrips(){
+      // remove prior strips/separators
+      [...frame.querySelectorAll(".rowStrip, .separator")].forEach(n => n.remove());
+
+      const bubble = getCSSNumber("--bubble");
+      const gap = getCSSNumber("--gap");
+      const framePadTop = 16; // matches CSS .popitFrame padding
+      const boardPadTop = 14; // matches CSS .board padding
+
+      // The strip height roughly equals one row "cell" (bubble + gap)
+      const cellH = bubble + gap;
+
+      // Insert strips behind the board
+      for (let r = 0; r < rows; r++){
+        const strip = document.createElement("div");
+        strip.className = "rowStrip";
+        strip.style.top = `${framePadTop + boardPadTop + r * cellH}px`;
+
+        const c = ROW_COLORS[r % ROW_COLORS.length];
+        strip.style.background =
+          `linear-gradient(180deg,
+            color-mix(in srgb, ${c} 92%, white 8%),
+            color-mix(in srgb, ${c} 92%, black 8%))`;
+
+        // Subtle “molded” texture feel
+        strip.style.boxShadow =
+          "inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -10px 18px rgba(0,0,0,0.20)";
+        frame.insertBefore(strip, board);
+      }
+
+      // Separators between rows (like the raised silicone bands)
+      for (let r = 1; r < rows; r++){
+        const sep = document.createElement("div");
+        sep.className = "separator";
+        // place separator between row r-1 and r
+        sep.style.top = `${framePadTop + boardPadTop + r * cellH - (gap/2) - 5}px`;
+        frame.insertBefore(sep, board);
       }
     }
 
     // ---------- Bubble actions ----------
     function toggleBubble(el){
-      if (!el) return;
-      const next = (el.dataset.state === 'out') ? 'in' : 'out';
+      const next = (el.dataset.state === "out") ? "in" : "out";
       el.dataset.state = next;
 
-      // Haptic on supported mobile browsers
+      // optional haptic
       if (navigator.vibrate) navigator.vibrate(8);
 
       popSound();
@@ -319,95 +479,103 @@
     }
 
     function setAll(state){
-      board.querySelectorAll('.bubble').forEach(b => b.dataset.state = state);
+      board.querySelectorAll(".bubble").forEach(b => b.dataset.state = state);
       updateStat();
     }
 
     function shuffle(){
-      board.querySelectorAll('.bubble').forEach(b => {
-        b.dataset.state = (Math.random() < 0.5) ? 'out' : 'in';
+      board.querySelectorAll(".bubble").forEach(b => {
+        b.dataset.state = (Math.random() < 0.5) ? "out" : "in";
       });
       updateStat();
     }
 
     // ---------- Build board ----------
     function buildBoard(){
-      board.innerHTML = '';
-      const total = rows * cols;
+      board.innerHTML = "";
 
-      for (let i=0; i<total; i++){
-        const b = document.createElement('div');
-        b.className = 'bubble';
-        b.tabIndex = 0;
-        b.role = 'button';
-        b.ariaLabel = 'Bubble';
-        b.dataset.id = String(i);
-        b.dataset.state = 'out';
+      for (let r = 0; r < rows; r++){
+        const rowColor = ROW_COLORS[r % ROW_COLORS.length];
 
-        // Click / tap
-        b.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          isPointerDown = true;
-          lastPoppedId = b.dataset.id;
-          toggleBubble(b);
-          b.setPointerCapture?.(e.pointerId);
-        });
+        for (let c = 0; c < cols; c++){
+          const b = document.createElement("div");
+          b.className = "bubble";
+          b.tabIndex = 0;
+          b.role = "button";
+          b.ariaLabel = "Pop bubble";
+          b.dataset.state = "out";
+          b.style.setProperty("--rowColor", rowColor);
 
-        b.addEventListener('pointerenter', (e) => {
-          if (!isPointerDown) return;
-          // Prevent toggling the same bubble repeatedly if pointer jitters
-          if (b.dataset.id === lastPoppedId) return;
-          lastPoppedId = b.dataset.id;
-          toggleBubble(b);
-        });
-
-        b.addEventListener('pointerup', () => {
-          isPointerDown = false;
-          lastPoppedId = null;
-        });
-
-        b.addEventListener('pointercancel', () => {
-          isPointerDown = false;
-          lastPoppedId = null;
-        });
-
-        // Keyboard support
-        b.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
+          // Tap/click only (no drag feature)
+          b.addEventListener("click", async () => {
+            // ensure audio is created/resumed from user gesture
+            if (soundEnabled) {
+              try { await ensureAudio(); } catch(_) {}
+            }
             toggleBubble(b);
-          }
-        });
+          });
 
-        board.appendChild(b);
+          // Keyboard support
+          b.addEventListener("keydown", async (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (soundEnabled) {
+                try { await ensureAudio(); } catch(_) {}
+              }
+              toggleBubble(b);
+            }
+          });
+
+          board.appendChild(b);
+        }
       }
 
       updateStat();
+      buildRowStrips();
     }
 
-    // ---------- Global events ----------
-    window.addEventListener('pointerup', () => { isPointerDown = false; lastPoppedId = null; });
-
-    resetBtn.addEventListener('click', () => setAll('out'));
-    shuffleBtn.addEventListener('click', shuffle);
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'r') setAll('out');
-      if (e.key.toLowerCase() === 's') shuffle();
+    // ---------- Controls ----------
+    resetBtn.addEventListener("click", async () => {
+      if (soundEnabled) { try { await ensureAudio(); } catch(_) {} }
+      setAll("out");
     });
 
-    // Rebuild on resize for responsive cols/rows
+    shuffleBtn.addEventListener("click", async () => {
+      if (soundEnabled) { try { await ensureAudio(); } catch(_) {} }
+      shuffle();
+    });
+
+    soundBtn.addEventListener("click", async () => {
+      soundEnabled = !soundEnabled;
+      setSoundUI();
+
+      if (soundEnabled) {
+        // resume/create context now so first pop is audible
+        try {
+          await ensureAudio();
+          // play a tiny confirmation pop
+          popSound();
+        } catch(e) {
+          // if blocked, flip sound back off
+          soundEnabled = false;
+          setSoundUI();
+        }
+      }
+    });
+
+    // ---------- Resize handling ----------
     let resizeTimer = null;
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        computeGrid();
+        computeCols();
         buildBoard();
       }, 120);
     });
 
     // Init
-    computeGrid();
+    setSoundUI();
+    computeCols();
     buildBoard();
   </script>
 </body>
